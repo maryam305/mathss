@@ -1,581 +1,479 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-// FIX 1: Added FileText to imports to solve "FileText is not defined"
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Activity, Share2, Database, X, 
-  Dna, LayoutGrid, Search,
-  Zap, ArrowUpRight, Filter, Settings,
-  ChevronDown, MoreHorizontal, UploadCloud, Check, AlertCircle, Menu,
-  Layers, Terminal, FileText 
+  Activity, Database, LayoutDashboard, PieChart, PlusCircle, Settings, Server, X
 } from 'lucide-react';
-// FIX 2: We use 'motion' now for smooth sidebar and page transitions
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, AreaChart, Area
-} from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-/* -------------------------------------------------------------------------- */
-/* 1. THEME ENGINE                                                            */
-/* -------------------------------------------------------------------------- */
-
+// --- THEME CONFIGURATION ---
 const THEMES = {
-  modern: {
-    id: 'modern',
-    label: 'Modern Light',
-    gradient: "from-slate-50/90 to-slate-100/80",
-    nav: "bg-white/60 border-b border-white/40",
-    sidebar: "bg-white/50 border-r border-white/40",
-    card: "bg-white/40 border border-white/60",
-    textMain: "text-slate-800",
-    textSub: "text-slate-500",
-    primary: "#6366f1",
-    accent: "#8b5cf6",
-    canvas: { node: "rgba(99, 102, 241, 0.4)", line: "rgba(99, 102, 241, 0.1)" }
+  purple: {
+    name: 'Nebula',
+    bg: 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#2D1B4E] via-[#0D0415] to-[#05010a]',
+    primary: '#EC4899', // Pink
+    secondary: '#8B5CF6', // Purple
+    accent: '#A78BFA',
+    text: 'text-white',
+    panelBg: 'bg-[#1a0b2e]/60'
   },
-  dark: {
-    id: 'dark',
-    label: 'Scientific Dark',
-    gradient: "from-[#0B1120]/95 to-[#0f172a]/90",
-    nav: "bg-[#0f172a]/60 border-b border-white/10",
-    sidebar: "bg-[#0f172a]/50 border-r border-white/10",
-    card: "bg-[#1e293b]/50 border border-white/10",
-    textMain: "text-slate-100",
-    textSub: "text-slate-400",
-    primary: "#38bdf8",
-    accent: "#818cf8",
-    canvas: { node: "rgba(56, 189, 248, 0.4)", line: "rgba(148, 163, 184, 0.15)" }
+  cyber: {
+    name: 'Cyberpunk',
+    bg: 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1a1a1a] via-[#000000] to-[#111100]',
+    primary: '#FACC15', // Yellow
+    secondary: '#06B6D4', // Cyan
+    accent: '#22D3EE',
+    text: 'text-yellow-50',
+    panelBg: 'bg-[#111]/80'
   },
-  warm: {
-    id: 'warm',
-    label: 'Journal',
-    gradient: "from-[#FDFBF7]/90 to-[#f5f5f4]/80",
-    nav: "bg-[#e7e5e4]/50 border-b border-stone-200/50",
-    sidebar: "bg-[#f5f5f4]/50 border-r border-stone-200/50",
-    card: "bg-white/50 border border-stone-200/60",
-    textMain: "text-stone-800",
-    textSub: "text-stone-500",
-    primary: "#ea580c",
-    accent: "#d97706",
-    canvas: { node: "rgba(234, 88, 12, 0.3)", line: "rgba(168, 162, 158, 0.2)" }
+  ocean: {
+    name: 'Deep Sea',
+    bg: 'bg-gradient-to-b from-[#0f172a] via-[#020617] to-[#0b1121]',
+    primary: '#38BDF8', // Light Blue
+    secondary: '#3B82F6', // Blue
+    accent: '#7DD3FC',
+    text: 'text-sky-50',
+    panelBg: 'bg-[#0f172a]/60'
   },
-  blue: {
-    id: 'blue',
-    label: 'Clinical',
-    gradient: "from-[#F0F9FF]/90 to-[#e0f2fe]/80",
-    nav: "bg-sky-50/60 border-b border-sky-200/50",
-    sidebar: "bg-sky-50/50 border-r border-sky-200/50",
-    card: "bg-white/50 border border-sky-100/60",
-    textMain: "text-sky-900",
-    textSub: "text-sky-500",
-    primary: "#0284c7",
-    accent: "#0ea5e9",
-    canvas: { node: "rgba(2, 132, 199, 0.3)", line: "rgba(2, 132, 199, 0.1)" }
-  },
-  midnight: {
-    id: 'midnight',
-    label: 'Cyber',
-    gradient: "from-black/90 to-[#111]/90",
-    nav: "bg-black/60 border-b border-white/10",
-    sidebar: "bg-black/50 border-r border-white/10",
-    card: "bg-[#111]/60 border border-white/10",
-    textMain: "text-gray-200",
-    textSub: "text-gray-500",
-    primary: "#d8b4fe",
-    accent: "#c084fc",
-    canvas: { node: "rgba(216, 180, 254, 0.5)", line: "rgba(216, 180, 254, 0.15)" }
+  crimson: {
+    name: 'Red Alert',
+    bg: 'bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-[#2b0a0a] via-[#000] to-[#1a0505]',
+    primary: '#EF4444', // Red
+    secondary: '#F97316', // Orange
+    accent: '#FCA5A5',
+    text: 'text-red-50',
+    panelBg: 'bg-[#2b0a0a]/60'
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/* 2. BACKGROUND CANVAS (THE SPECTRA ENGINE)                                  */
-/* -------------------------------------------------------------------------- */
-
-const BioNetworkBackground = ({ theme }) => {
+/**
+ * --- VISUAL COMPONENT: HOLOGRAPHIC GRAPH ---
+ */
+const HolographicGraph = ({ nodes, theme }) => {
   const canvasRef = useRef(null);
-
+  
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if(!canvas) return;
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
     
-    // Config
-    let w = window.innerWidth;
-    let h = window.innerHeight;
-    canvas.width = w;
-    canvas.height = h;
+    // Robust resize handler that checks parent dimensions
+    const updateSize = () => {
+        const parent = canvas.parentElement;
+        if (parent) {
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+        }
+    }
+    
+    // Initial size and event listener
+    updateSize();
+    window.addEventListener('resize', updateSize);
 
-    const particleCount = w < 768 ? 40 : 80;
-    const particles = Array.from({ length: particleCount }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 3 + 1,
-      phase: Math.random() * Math.PI * 2
+    const particles = nodes.map(n => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random()-0.5)*0.5,
+      vy: (Math.random()-0.5)*0.5,
+      ...n
     }));
 
-    const render = () => {
-      ctx.clearRect(0, 0, w, h);
+    let frame;
+    const animate = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0,0,w,h);
       
       particles.forEach((p, i) => {
-        // Physics
-        p.x += p.vx;
-        p.y += p.vy;
-        p.phase += 0.005;
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0 || p.x > w) p.vx *= -1;
+        if(p.y < 0 || p.y > h) p.vy *= -1;
 
-        // Boundaries (Wrap)
-        if (p.x < 0) p.x = w;
-        else if (p.x > w) p.x = 0;
-        if (p.y < 0) p.y = h;
-        else if (p.y > h) p.y = 0;
-
-        // Connections
-        particles.slice(i + 1).forEach((p2) => {
-          const dx = p.x - p2.x;
-          const dy = p.y - p2.y;
-          const dist = Math.hypot(dx, dy);
-          const maxDist = 200;
-
-          if (dist < maxDist) {
-            ctx.beginPath();
-            ctx.strokeStyle = theme.canvas.line;
-            ctx.lineWidth = (1 - dist / maxDist);
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
+        particles.forEach((p2, j) => {
+           if(i < j) {
+             const dx = p.x - p2.x;
+             const dy = p.y - p2.y;
+             const dist = Math.sqrt(dx*dx+dy*dy);
+             if(dist < 100) {
+               ctx.beginPath();
+               ctx.strokeStyle = `${theme.secondary}20`; // Hex + opacity
+               ctx.moveTo(p.x, p.y);
+               ctx.lineTo(p2.x, p2.y);
+               ctx.stroke();
+             }
+           }
         });
 
-        // Draw Node
         ctx.beginPath();
-        const pulse = 0.5 + Math.sin(p.phase) * 0.5;
-        const colorBase = theme.canvas.node.substring(0, theme.canvas.node.lastIndexOf(','));
-        ctx.fillStyle = `${colorBase}, ${pulse})`;
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.isOncogene ? 5 : 2, 0, Math.PI*2);
+        ctx.fillStyle = p.isOncogene ? theme.primary : theme.secondary; 
         ctx.fill();
+        
+        if(p.isOncogene) {
+             ctx.shadowBlur = 15;
+             ctx.shadowColor = theme.primary;
+             ctx.stroke();
+             ctx.shadowBlur = 0;
+        }
       });
-
-      animationFrameId = requestAnimationFrame(render);
+      frame = requestAnimationFrame(animate);
     };
-
-    render();
-
-    const handleResize = () => {
-      w = window.innerWidth;
-      h = window.innerHeight;
-      canvas.width = w;
-      canvas.height = h;
-    };
-    window.addEventListener('resize', handleResize);
-
+    animate();
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [theme]);
+        cancelAnimationFrame(frame);
+        window.removeEventListener('resize', updateSize);
+    }
+  }, [nodes, theme]);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none bg-white" />;
+  return <canvas ref={canvasRef} className="w-full h-full block" />;
 };
 
-/* -------------------------------------------------------------------------- */
-/* 3. MOCK DATA ENGINE                                                        */
-/* -------------------------------------------------------------------------- */
+/**
+ * --- COMPONENT: LIQUID GAUGE ---
+ */
+const LiquidGauge = ({ value, label, color, panelBg }) => (
+  <div className={`flex flex-col items-center justify-center p-4 ${panelBg} backdrop-blur-md rounded-2xl border border-white/5 relative overflow-hidden group min-h-[140px] w-full`}>
+    <div className="relative w-20 h-20 mb-3 flex-shrink-0">
+       <svg className="w-full h-full transform -rotate-90">
+         <circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.1)" strokeWidth="6" fill="transparent" />
+         <circle 
+            cx="40" cy="40" r="36" 
+            stroke={color} 
+            strokeWidth="6" 
+            fill="transparent" 
+            strokeDasharray={226} // 2 * pi * 36
+            strokeDashoffset={226 - (226 * value) / 100}
+            className="transition-all duration-1000 ease-out"
+            strokeLinecap="round"
+         />
+       </svg>
+       <div className="absolute inset-0 flex items-center justify-center">
+         <div className="text-lg font-bold font-mono" style={{ color }}>{value}%</div>
+       </div>
+    </div>
+    <span className="text-[10px] font-bold opacity-60 tracking-wider uppercase text-center">{label}</span>
+  </div>
+);
 
-const MockEngine = {
-  getTopology: (count = 35) => ({
-    nodes: Array.from({ length: count }, (_, i) => ({
-      id: `P-${100 + i}`,
-      label: i % 5 === 0 ? `HUB-${i}` : `Gene-${i}`,
-      type: i % 5 === 0 ? 'Driver' : 'Passenger',
-      val: Math.random(),
-      status: Math.random() > 0.9 ? 'Mutated' : 'Stable'
-    })),
-    links: [] 
-  }),
-  getAnalytics: () => Array.from({ length: 12 }, (_, i) => ({
-    time: `${i * 2}h`,
-    val: 2000 + Math.random() * 3000
-  }))
-};
-
-/* -------------------------------------------------------------------------- */
-/* 4. UI COMPONENTS                                                           */
-/* -------------------------------------------------------------------------- */
-
-const BentoCard = ({ children, title, icon: Icon, theme, className = "", delay = 0 }) => (
-  // Fixed: 'motion' is now correctly used here for animation
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: delay * 0.1, ease: "backOut" }}
-    className={`relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl shadow-sm ${theme.card} ${className}`}
+/**
+ * --- COMPONENT: STAT CARD ---
+ */
+const StatCard = ({ title, value, theme, trend }) => (
+  <motion.div 
+    whileHover={{ y: -5 }}
+    className={`${theme.panelBg} backdrop-blur-md p-6 rounded-2xl border border-white/5 relative overflow-hidden min-h-[120px] flex flex-col justify-between w-full`}
   >
-    {title && (
-      <div className="flex items-center justify-between mb-4 z-10 relative">
-        <div className="flex items-center gap-2">
-          {Icon && (
-            <div className="p-1.5 rounded-lg opacity-80" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-              <Icon size={16} />
-            </div>
-          )}
-          <h3 className={`text-xs font-bold uppercase tracking-wider ${theme.textSub}`}>{title}</h3>
-        </div>
-        <MoreHorizontal size={16} className={`${theme.textSub} opacity-50`} />
-      </div>
-    )}
-    <div className="relative z-10 h-full">{children}</div>
+    <div className="flex justify-between items-start">
+      <h3 className="text-xs opacity-70 font-bold tracking-widest uppercase truncate pr-2" style={{ color: theme.accent }}>{title}</h3>
+      <div className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ backgroundColor: trend === 'up' ? theme.primary : theme.secondary }} />
+    </div>
+    <div className="text-2xl font-bold font-mono mt-2 truncate" title={value}>{value}</div>
+    {/* Mini Sparkline */}
+    <div className="w-full h-4 flex items-end gap-1 opacity-30 mt-2">
+       {[40, 70, 50, 90, 60, 80, 50].map((h, i) => (
+         <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, background: theme.primary }} />
+       ))}
+    </div>
   </motion.div>
 );
 
-const SettingsModal = ({ isOpen, onClose, activeTheme, setTheme, theme }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className={`w-full max-w-md rounded-2xl backdrop-blur-2xl shadow-2xl overflow-hidden ${theme.card}`}
-      >
-        <div className={`p-5 border-b flex justify-between items-center ${theme.id === 'dark' ? 'border-white/10' : 'border-gray-200/50'}`}>
-          <h3 className={`font-bold ${theme.textMain}`}>Configuration</h3>
-          <button onClick={onClose}><X size={20} className={theme.textSub} /></button>
-        </div>
-        <div className="p-6">
-          <label className={`text-xs font-bold uppercase tracking-wide ${theme.textSub} mb-3 block`}>Visual Theme</label>
-          <div className="grid grid-cols-1 gap-2">
-            {Object.values(THEMES).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTheme(t.id)}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                  activeTheme === t.id
-                    ? `border-[${theme.primary}] ring-1 ring-[${theme.primary}]`
-                    : `border-transparent hover:bg-black/5`
-                }`}
-                style={{ borderColor: activeTheme === t.id ? theme.primary : 'transparent' }}
-              >
-                <div className="w-6 h-6 rounded-full border border-black/10 shadow-sm" 
-                     style={{ background: t.id === 'midnight' ? '#000' : t.id === 'dark' ? '#0f172a' : '#fff' }} 
-                />
-                <span className={`text-sm font-medium ${theme.textMain}`}>{t.label}</span>
-                {activeTheme === t.id && <Check size={16} className="ml-auto text-green-500" />}
-              </button>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-/* -------------------------------------------------------------------------- */
-/* 5. MAIN APP COMPONENT                                                      */
-/* -------------------------------------------------------------------------- */
-
 export default function App() {
-  const [tab, setTab] = useState('dashboard');
-  const [themeId, setThemeId] = useState('modern');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [data, setData] = useState(() => MockEngine.getTopology());
-  const [analytics] = useState(() => MockEngine.getAnalytics());
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentTheme, setCurrentTheme] = useState('purple');
   const [showSettings, setShowSettings] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  const fileInputRef = useRef(null);
-  
-  const theme = useMemo(() => THEMES[themeId], [themeId]);
+  const [data, setData] = useState({ nodes: [] });
+  const [metrics, setMetrics] = useState([]);
+  const [serverStatus, setServerStatus] = useState('OFFLINE');
+  const [newData, setNewData] = useState({ id: '', type: 'Kinase', expression: 50 });
 
-  const handleFileUpload = useCallback((e) => {
-    if (e.target.files?.[0]) {
-      setLoading(true);
-      setTimeout(() => {
-        setData(MockEngine.getTopology(40));
-        setLoading(false);
-      }, 1500);
-    }
+  const theme = THEMES[currentTheme];
+
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const statusRes = await fetch('http://localhost:3000/api/status');
+            if(statusRes.ok) setServerStatus('ONLINE');
+
+            const analyzeRes = await fetch('http://localhost:3000/api/analyze', { method: 'POST' });
+            const analyzeData = await analyzeRes.json();
+            setData(analyzeData.network_data);
+
+            const metricsRes = await fetch('http://localhost:3000/api/production-metrics');
+            const metricsData = await metricsRes.json();
+            setMetrics(metricsData);
+        } catch (err) {
+            console.error("Connection error:", err);
+            setServerStatus('OFFLINE');
+        }
+    };
+    fetchData();
   }, []);
 
-  const NAV_LINKS = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutGrid },
-    { id: 'network', label: 'Graph', icon: Share2 },
-    { id: 'data', label: 'Dataset', icon: Database },
-  ];
-
   return (
-    <div className={`h-screen w-screen relative overflow-hidden font-sans transition-colors duration-700`}>
+    <div className={`h-screen ${theme.bg} ${theme.text} font-sans flex flex-col overflow-hidden transition-colors duration-700`}>
       
-      {/* A. LIVING BACKGROUND (Fixed z-0) */}
-      <BioNetworkBackground theme={theme} />
-      
-      {/* Gradient Overlay for Readability */}
-      <div className={`fixed inset-0 z-[-1] bg-gradient-to-br ${theme.gradient} pointer-events-none`} />
-
-      {/* Hidden Inputs */}
-      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-
-      {/* B. SIDEBAR (Left, z-20) */}
-      {/* Fixed: 'motion' is used here to animate sidebar width */}
-      <motion.aside 
-        initial={false}
-        animate={{ width: sidebarOpen ? 260 : 80 }}
-        className={`fixed left-0 top-0 bottom-0 z-30 flex flex-col backdrop-blur-xl transition-colors duration-500 ${theme.sidebar}`}
-      >
-        <div className={`h-20 flex items-center px-6 border-b ${theme.id.includes('dark') ? 'border-white/10' : 'border-gray-200/40'}`}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg mr-3" 
-               style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})` }}>
-            <Dna size={20} strokeWidth={2.5} />
+      {/* --- HEADER --- */}
+      <header className="h-20 flex-none flex justify-between items-center px-4 md:px-8 z-20 border-b border-white/5 bg-black/10 backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
+            <Activity className="text-white w-6 h-6" />
           </div>
-          {sidebarOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col">
-              <span className={`font-bold text-xl tracking-tight ${theme.textMain}`}>Helix.AI</span>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.textSub}`}>v4.0 Pro</span>
-            </motion.div>
-          )}
+          <div className="hidden md:block">
+            <h1 className="text-xl font-bold tracking-tight">HELIX<span style={{ color: theme.primary }}>.UI</span></h1>
+            <p className="text-[10px] opacity-50 tracking-[0.3em] font-bold">BIOMETRIC DASHBOARD</p>
+          </div>
         </div>
-
-        <nav className="flex-1 p-4 space-y-2">
-          {NAV_LINKS.map(item => (
+        
+        {/* TAB NAV */}
+        <div className={`flex ${theme.panelBg} p-1.5 rounded-full border border-white/5 backdrop-blur-md overflow-x-auto max-w-[50vw] md:max-w-none no-scrollbar`}>
+          {[
+            { id: 'dashboard', label: 'OVERVIEW', icon: LayoutDashboard },
+            { id: 'analysis', label: 'ANALYTICS', icon: PieChart },
+            { id: 'add-data', label: 'INGEST', icon: PlusCircle },
+          ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
-                tab === item.id 
-                  ? `bg-white/20 shadow-sm ${theme.textMain} font-bold` 
-                  : `${theme.textSub} hover:bg-white/10`
-              }`}
+              onClick={() => setActiveTab(item.id)}
+              className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap`}
+              style={{
+                background: activeTab === item.id ? `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` : 'transparent',
+                color: activeTab === item.id ? '#fff' : 'rgba(255,255,255,0.5)',
+                boxShadow: activeTab === item.id ? '0 4px 15px rgba(0,0,0,0.3)' : 'none'
+              }}
             >
-              <item.icon size={22} />
-              {sidebarOpen && <span>{item.label}</span>}
+              <item.icon size={14} />
+              {item.label}
             </button>
           ))}
-        </nav>
-
-        <div className={`p-4 border-t ${theme.id.includes('dark') ? 'border-white/10' : 'border-gray-200/40'} space-y-2`}>
-          <button onClick={() => setShowSettings(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${theme.textSub} hover:bg-white/10 transition-colors`}>
-            <Settings size={22} />
-            {sidebarOpen && <span>Settings</span>}
-          </button>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${theme.textSub} hover:bg-white/10 transition-colors`}>
-            <Menu size={22} />
-            {sidebarOpen && <span>Collapse</span>}
-          </button>
         </div>
-      </motion.aside>
 
-      {/* C. MAIN CONTENT AREA (Right, z-10) */}
-      <motion.div 
-        animate={{ paddingLeft: sidebarOpen ? 260 : 80 }}
-        className="h-full w-full flex flex-col relative z-10"
-      >
-        {/* Header */}
-        <header className={`h-20 px-8 flex items-center justify-between shrink-0 backdrop-blur-xl transition-colors duration-500 ${theme.nav}`}>
-          <h2 className={`text-2xl font-bold capitalize ${theme.textMain} w-1/3`}>{tab}</h2>
+        <div className="flex items-center gap-4 relative">
+           <div className={`w-2 h-2 rounded-full ${serverStatus === 'ONLINE' ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-red-500'}`} />
+           <button onClick={() => setShowSettings(!showSettings)} className="hover:rotate-90 transition-transform duration-500">
+             <Settings className="opacity-70 hover:opacity-100" size={20} />
+           </button>
+
+           {/* SETTINGS POPUP */}
+           <AnimatePresence>
+             {showSettings && (
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                 className={`absolute top-12 right-0 w-64 ${theme.panelBg} border border-white/10 rounded-2xl shadow-2xl p-4 backdrop-blur-xl z-50`}
+               >
+                 <div className="flex justify-between items-center mb-4">
+                   <span className="text-xs font-bold uppercase tracking-wider">Interface Theme</span>
+                   <X size={14} className="cursor-pointer opacity-50 hover:opacity-100" onClick={() => setShowSettings(false)} />
+                 </div>
+                 <div className="grid grid-cols-2 gap-2">
+                   {Object.entries(THEMES).map(([key, t]) => (
+                     <button
+                       key={key}
+                       onClick={() => setCurrentTheme(key)}
+                       className={`p-2 rounded-lg text-xs font-bold border transition-all text-left flex items-center gap-2
+                         ${currentTheme === key ? 'border-white/30 bg-white/10' : 'border-transparent hover:bg-white/5'}
+                       `}
+                     >
+                       <div className="w-3 h-3 rounded-full" style={{ background: t.primary }}></div>
+                       {t.name}
+                     </button>
+                   ))}
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
+        </div>
+      </header>
+
+      {/* --- MAIN CONTENT (SCROLLABLE) --- */}
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto relative scroll-smooth custom-scrollbar">
+        <AnimatePresence mode="wait">
           
-          {/* BRANDING CENTERPIECE */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-             <div className="flex items-center gap-3">
-               <div className="h-[2px] w-12 rounded-full opacity-50" style={{ backgroundColor: theme.primary }} />
-               <h1 className={`text-3xl font-black tracking-[0.25em] ${theme.textMain}`} style={{ fontFamily: 'system-ui' }}>SPECTRA</h1>
-               <div className="h-[2px] w-12 rounded-full opacity-50" style={{ backgroundColor: theme.primary }} />
-             </div>
-             <span className={`text-[9px] font-bold uppercase tracking-widest ${theme.textSub} mt-1`}>Biological Network Intelligence</span>
-          </div>
-
-          <div className="flex items-center gap-4 justify-end w-1/3">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${theme.id === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/40 border-white/40'}`}>
-              <Search size={16} className={theme.textSub} />
-              <input type="text" placeholder="Search genes..." className={`bg-transparent text-sm focus:outline-none w-32 ${theme.textMain}`} />
-            </div>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-6 py-2.5 text-white text-sm font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-              style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})` }}
+          {/* VIEW: DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              // ADAPTIVE LAYOUT: Flex on mobile, Grid on large screens, with min-height constraints to prevent overlap
+              className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_minmax(350px,1fr)] pb-8"
             >
-              {loading ? <Activity size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-              <span>Import</span>
-            </button>
-          </div>
-        </header>
+              {/* ROW 1: STATS (Grid wraps automatically) */}
+              <div className="col-span-12 grid grid-cols-2 xl:grid-cols-4 gap-4">
+                 <StatCard title="Protein Count" value={data.nodes?.length || 0} theme={theme} trend="up" />
+                 <StatCard title="Oncogenes" value={data.nodes?.filter(n => n.isOncogene).length || 0} theme={theme} trend="down" />
+                 <StatCard title="Efficiency" value="94.2%" theme={theme} trend="up" />
+                 <StatCard title="Data Flow" value="876 MB/s" theme={theme} trend="up" />
+              </div>
 
-        {/* Scrollable Workspace */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <AnimatePresence mode="wait">
-            
-            {/* VIEW: DASHBOARD */}
-            {tab === 'dashboard' && (
-              <motion.div 
-                key="dash"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="grid grid-cols-12 gap-6 max-w-[1600px] mx-auto"
-              >
-                <BentoCard delay={1} title="Total Nodes" icon={Share2} theme={theme} className="col-span-3 border-l-4" style={{borderLeftColor: theme.primary}}>
-                  <div className="flex items-end gap-2 mt-4">
-                    <span className={`text-4xl font-bold ${theme.textMain}`}>1,420</span>
-                    <span className="text-xs text-green-500 font-bold bg-green-500/10 px-2 py-1 rounded-full mb-1">Live</span>
-                  </div>
-                </BentoCard>
+              {/* ROW 2: GAUGES & CHART */}
+              <div className="col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                 {/* GAUGES */}
+                 <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+                    <LiquidGauge value={78} label="Stability" color={theme.primary} panelBg={theme.panelBg} />
+                    <LiquidGauge value={45} label="Mutation" color={theme.secondary} panelBg={theme.panelBg} />
+                    <LiquidGauge value={92} label="Purity" color={theme.accent} panelBg={theme.panelBg} />
+                    <LiquidGauge value={63} label="Response" color={theme.primary} panelBg={theme.panelBg} />
+                 </div>
 
-                <BentoCard delay={2} title="System Load" icon={Zap} theme={theme} className="col-span-3 border-l-4" style={{borderLeftColor: theme.accent}}>
-                   <div className="flex items-end gap-2 mt-4">
-                    <span className={`text-4xl font-bold ${theme.textMain}`}>34%</span>
-                    <span className={`text-sm ${theme.textSub} mb-1.5`}>Optimal</span>
-                  </div>
-                </BentoCard>
+                 {/* BIG CHART */}
+                 <div className={`lg:col-span-8 ${theme.panelBg} border border-white/5 rounded-2xl p-6 relative flex flex-col min-h-[300px]`}>
+                    <h3 className="text-sm font-bold opacity-80 mb-4 flex items-center gap-2">
+                      <Activity size={16} style={{ color: theme.primary }} /> SYSTEM GROWTH
+                    </h3>
+                    <div className="flex-1 w-full min-h-[200px]">
+                      <ResponsiveContainer>
+                        <AreaChart data={metrics}>
+                          <defs>
+                            <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={theme.primary} stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor={theme.primary} stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorSecondary" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={theme.secondary} stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor={theme.secondary} stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: theme.accent, fontSize: 10}} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#000', borderColor: '#333', borderRadius: '8px' }}
+                            itemStyle={{ color: '#fff', fontSize: '12px' }}
+                          />
+                          <Area type="monotone" dataKey="growth" stroke={theme.primary} strokeWidth={3} fill="url(#colorPrimary)" />
+                          <Area type="monotone" dataKey="inhibition" stroke={theme.secondary} strokeWidth={3} fill="url(#colorSecondary)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                 </div>
+              </div>
 
-                <BentoCard delay={3} title="Mutations" icon={Dna} theme={theme} className="col-span-3 border-l-4" style={{borderLeftColor: '#f43f5e'}}>
-                  <div className="flex items-end gap-2 mt-4">
-                    <span className={`text-4xl font-bold ${theme.textMain}`}>215</span>
-                    <span className="text-xs text-red-500 font-bold bg-red-500/10 px-2 py-1 rounded-full mb-1">+12%</span>
-                  </div>
-                </BentoCard>
+              {/* ROW 3: NETWORK GRAPH */}
+              <div className={`col-span-12 ${theme.panelBg} border border-white/5 rounded-2xl relative overflow-hidden group min-h-[400px]`}>
+                 <div className="absolute top-4 left-6 z-10 pointer-events-none">
+                   <h3 className="text-sm font-bold flex items-center gap-2">
+                     <Server size={16} style={{ color: theme.secondary }} /> LIVE NETWORK TOPOLOGY
+                   </h3>
+                 </div>
+                 <HolographicGraph nodes={data.nodes || []} theme={theme} />
+                 <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+              </div>
 
-                <BentoCard delay={4} title="Status" theme={theme} className="col-span-3">
-                   <div className="flex items-center gap-3 h-full pb-2">
-                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
-                     <span className={`text-sm font-bold ${theme.textMain}`}>Engine Online</span>
+            </motion.div>
+          )}
+
+          {/* VIEW: INGEST (Add Data) */}
+          {activeTab === 'add-data' && (
+            <motion.div 
+               key="add"
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.95 }}
+               className="h-full flex items-center justify-center min-h-[600px]"
+            >
+              <div className={`w-full max-w-[400px] ${theme.panelBg} border border-white/10 p-8 rounded-3xl shadow-2xl relative overflow-hidden backdrop-blur-xl`}>
+                 <div className="absolute top-0 left-0 w-full h-2" style={{ background: `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` }} />
+                 <h2 className="text-2xl font-bold mb-6">Inject Data</h2>
+                 
+                 <div className="space-y-6">
+                   <div className="group">
+                     <label className="text-xs font-bold opacity-60 uppercase tracking-wider mb-2 block">Protein Identifier</label>
+                     <div className="flex items-center bg-black/40 rounded-xl border border-white/10 group-focus-within:border-white/40 transition-colors p-3">
+                        <Database size={16} className="opacity-50 mr-3" />
+                        <input 
+                          type="text" 
+                          value={newData.id}
+                          onChange={e => setNewData({...newData, id: e.target.value})}
+                          className="bg-transparent text-white text-sm w-full focus:outline-none font-mono"
+                          placeholder="PRT-X00"
+                        />
+                     </div>
                    </div>
-                </BentoCard>
 
-                <BentoCard delay={5} title="Spectral Analysis" icon={Activity} theme={theme} className="col-span-8 h-[400px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={analytics} margin={{top:10, right:10, left:-20, bottom:0}}>
-                        <defs>
-                          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={theme.primary} stopOpacity={0.3}/>
-                            <stop offset="100%" stopColor={theme.primary} stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.id === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'} />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fontSize:12, fill:'#94a3b8'}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fontSize:12, fill:'#94a3b8'}} />
-                        <Tooltip contentStyle={{ borderRadius:'12px', border:'none', background: theme.id === 'modern' ? '#fff' : '#1e293b' }} />
-                        <Area type="monotone" dataKey="val" stroke={theme.primary} strokeWidth={3} fill="url(#grad)" />
-                      </AreaChart>
-                   </ResponsiveContainer>
-                </BentoCard>
+                   <div className="group">
+                     <label className="text-xs font-bold opacity-60 uppercase tracking-wider mb-2 block">Molecular Type</label>
+                     <div className="flex items-center bg-black/40 rounded-xl border border-white/10 group-focus-within:border-white/40 transition-colors p-3">
+                        <Activity size={16} className="opacity-50 mr-3" />
+                        <select 
+                           value={newData.type}
+                           onChange={e => setNewData({...newData, type: e.target.value})}
+                           className="bg-transparent text-white text-sm w-full focus:outline-none"
+                        >
+                          <option className="bg-black">Kinase</option>
+                          <option className="bg-black">Transcription Factor</option>
+                        </select>
+                     </div>
+                   </div>
 
-                <BentoCard delay={6} title="Shortcuts" theme={theme} className="col-span-4 h-[400px]">
-                   <div className="flex flex-col gap-3 h-full">
-                      {[
-                        { label: 'Import FASTQ', icon: UploadCloud },
-                        { label: 'Export Report', icon: FileText }, // FIX: FileText is now defined
-                        { label: 'Network Settings', icon: Settings }
-                      ].map((act, i) => (
-                        <button key={i} className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all hover:scale-[1.02] ${theme.id === 'dark' ? 'border-white/10 hover:bg-white/5' : 'border-white/50 hover:bg-white/60'}`}>
-                           <div className={`p-2 rounded-lg ${theme.id === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`}>
-                             <act.icon size={18} className={theme.textMain} />
-                           </div>
-                           <span className={`text-sm font-bold ${theme.textMain}`}>{act.label}</span>
-                           <ArrowUpRight size={16} className={`ml-auto ${theme.textSub}`} />
-                        </button>
-                      ))}
-                      
-                      <div className={`mt-auto p-4 rounded-xl border ${theme.id === 'dark' ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50/50 border-indigo-100'}`}>
-                         <div className="flex items-center gap-2 mb-2">
-                            <AlertCircle size={16} style={{ color: theme.primary }} />
-                            <span className="text-xs font-bold uppercase" style={{ color: theme.primary }}>Pro Tip</span>
-                         </div>
-                         <p className={`text-xs ${theme.textSub} leading-relaxed`}>
-                           Switch to "Network Graph" to view real-time protein interactions.
-                         </p>
+                   <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-xs font-bold opacity-60 uppercase tracking-wider">Expression</label>
+                        <span className="text-xs font-mono" style={{ color: theme.primary }}>{newData.expression}%</span>
                       </div>
+                      <input 
+                        type="range" 
+                        value={newData.expression}
+                        onChange={e => setNewData({...newData, expression: e.target.value})}
+                        className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                        style={{ accentColor: theme.primary }}
+                      />
                    </div>
-                </BentoCard>
-              </motion.div>
-            )}
 
-            {/* VIEW: NETWORK */}
-            {tab === 'network' && (
-              <motion.div 
-                key="net"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className={`h-full w-full max-w-7xl mx-auto rounded-2xl border overflow-hidden relative flex flex-col backdrop-blur-xl ${theme.card}`}
-              >
-                 <div className={`p-4 border-b flex justify-between items-center ${theme.id === 'dark' ? 'border-white/10' : 'border-white/40'}`}>
-                    <div className="flex gap-4">
-                       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${theme.id === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/40 border-white/40'}`}>
-                          <Filter size={14} className={theme.textSub} />
-                          <span className={`text-xs font-bold ${theme.textMain}`}>Filter: Hubs Only</span>
-                          <ChevronDown size={14} className={theme.textSub} />
-                       </div>
-                    </div>
-                    <button 
-                      onClick={() => setData(MockEngine.getTopology(45))}
-                      className={`text-xs font-bold px-4 py-2 rounded-lg transition-colors ${theme.id === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-100 hover:bg-slate-200'}`}
-                    >
-                      Regenerate Layout
-                    </button>
+                   <button 
+                      onClick={() => {
+                        fetch('http://localhost:3000/api/data', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newData)
+                        })
+                        .then(res => res.json())
+                        .then(() => {
+                            alert('Data Injected.');
+                            setNewData({ id: '', type: 'Kinase', expression: 50 });
+                        });
+                      }}
+                      className="w-full py-4 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-95 text-white"
+                      style={{ background: `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` }}
+                   >
+                     UPLOAD TO CORE
+                   </button>
                  </div>
-                 <div className="flex-1 flex items-center justify-center relative">
-                    <div className="text-center">
-                       <Layers size={48} className={`mx-auto mb-4 opacity-20 ${theme.textMain}`} />
-                       <p className={`text-sm font-bold ${theme.textSub}`}>Interactive Canvas Active</p>
-                    </div>
-                 </div>
-              </motion.div>
-            )}
+              </div>
+            </motion.div>
+          )}
 
-            {/* VIEW: DATA */}
-            {tab === 'data' && (
-              <motion.div
-                 key="data"
-                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                 className={`h-full w-full max-w-7xl mx-auto rounded-2xl border overflow-hidden backdrop-blur-xl ${theme.card}`}
-              >
-                <div className="p-0 overflow-auto h-full">
-                  <table className="w-full text-left border-collapse">
-                    <thead className={`sticky top-0 z-10 ${theme.id === 'dark' ? 'bg-[#1e293b]' : 'bg-gray-50'}`}>
-                       <tr>
-                         {['ID', 'Gene Name', 'Type', 'Confidence', 'Status'].map(h => (
-                           <th key={h} className={`p-4 text-xs font-bold uppercase border-b ${theme.id === 'dark' ? 'border-white/10' : 'border-gray-200'} ${theme.textSub}`}>{h}</th>
-                         ))}
-                       </tr>
-                    </thead>
-                    <tbody>
-                       {data.nodes.map((n, i) => (
-                         <tr key={i} className={`border-b group transition-colors ${theme.id === 'dark' ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-white/40'}`}>
-                           <td className={`p-4 text-xs font-mono opacity-60 ${theme.textMain}`}>{n.id}</td>
-                           <td className={`p-4 text-sm font-bold ${theme.textMain}`}>{n.label}</td>
-                           <td className="p-4">
-                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${n.type === 'Driver' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500' : 'bg-gray-500/10 border-gray-500/20 text-gray-500'}`}>
-                               {n.type}
-                             </span>
-                           </td>
-                           <td className="p-4">
-                              <div className={`w-24 h-1.5 rounded-full overflow-hidden ${theme.id === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`}>
-                                <div className="h-full" style={{ width: `${n.val * 100}%`, backgroundColor: theme.primary }} />
-                              </div>
-                           </td>
-                           <td className={`p-4 text-xs font-bold ${n.status === 'Mutated' ? 'text-red-500' : 'text-green-500'}`}>
-                             {n.status}
-                           </td>
-                         </tr>
-                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </motion.div>
-            )}
+          {/* VIEW: ANALYTICS (Full Charts) */}
+          {activeTab === 'analysis' && (
+            <motion.div 
+               key="analysis"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="h-full p-4 flex flex-col gap-6"
+            >
+               <div className={`h-1/2 ${theme.panelBg} rounded-2xl border border-white/5 p-6 min-h-[400px]`}>
+                 <h3 className="text-lg font-bold mb-4">Detailed Growth Trajectory</h3>
+                 <ResponsiveContainer width="100%" height="100%">
+                     <AreaChart data={metrics}>
+                       <defs>
+                         <linearGradient id="colorFull" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor={theme.primary} stopOpacity={0.6}/>
+                           <stop offset="95%" stopColor={theme.primary} stopOpacity={0}/>
+                         </linearGradient>
+                       </defs>
+                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                       <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" />
+                       <YAxis stroke="rgba(255,255,255,0.3)" />
+                       <Tooltip contentStyle={{backgroundColor: '#000'}} />
+                       <Area type="monotone" dataKey="growth" stroke={theme.primary} fill="url(#colorFull)" strokeWidth={4} />
+                     </AreaChart>
+                 </ResponsiveContainer>
+               </div>
+            </motion.div>
+          )}
 
-          </AnimatePresence>
-        </div>
-      </motion.div>
-
-      {/* D. MODALS */}
-      <AnimatePresence>
-        {showSettings && (
-          <SettingsModal 
-            isOpen={showSettings} 
-            onClose={() => setShowSettings(false)} 
-            activeTheme={themeId} 
-            setTheme={setThemeId} 
-            theme={theme} 
-          />
-        )}
-      </AnimatePresence>
-
+        </AnimatePresence>
+      </main>
     </div>
   );
 }
